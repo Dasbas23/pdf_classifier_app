@@ -1,2 +1,13 @@
 Fecha,Archivo Original,Proveedor,Pedido,Estado,Ruta Final
 2026-01-21 03:01:01,ocr.pdf,,,OK,./data/output/Revision_Manual\ocr.pdf
+2026-01-21 04:02:59,ocr.pdf,,,OK,C:\Users\marius.ion\Documents\pdf_classifier_app\data\output\Revision_Manual\ocr.pdf
+2026-01-21 05:18:43,arch1.pdf,CBM_IBERICA,,OK,C:\Users\marius.ion\Documents\pdf_classifier_app\data\output\Revision_Manual\arch1.pdf
+2026-01-21 05:18:43,arch2.pdf,EUROPART,,OK,C:\Users\marius.ion\Documents\pdf_classifier_app\data\output\Revision_Manual\arch2.pdf
+2026-01-21 05:18:43,arch3.pdf,VOLVO_TRUCKS,20,OK,C:\Users\marius.ion\Documents\pdf_classifier_app\data\output\Volvo\20.pdf
+2026-01-21 05:18:44,Convenio-colectivo-2024_2028-protocolo-SAE.pdf,,,OK,C:\Users\marius.ion\Documents\pdf_classifier_app\data\output\Revision_Manual\Convenio-colectivo-2024_2028-protocolo-SAE.pdf
+2026-01-21 05:22:51,arch1.pdf,CBM_IBERICA,,OK,C:\Users\marius.ion\Documents\pdf_classifier_app\data\output\Revision_Manual\arch1.pdf
+2026-01-21 05:26:00,arch1.pdf,CBM_IBERICA,,OK,C:\Users\marius.ion\Documents\pdf_classifier_app\data\output\Revision_Manual\arch1_DUPLICADO.pdf
+2026-01-21 05:26:06,arch1_DUPLICADO.pdf,CBM_IBERICA,,OK,C:\Users\marius.ion\Documents\pdf_classifier_app\data\output\Revision_Manual\arch1_DUPLICADO_DUPLICADO.pdf
+2026-01-21 05:29:24,arch1_DUPLICADO_DUPLICADO.pdf,CBM_IBERICA,,OK,C:\Users\marius.ion\Documents\pdf_classifier_app\data\output\Revision_Manual\arch1_DUPLICADO_DUPLICADO_DUPLICADO.pdf
+2026-01-21 05:37:23,arch1_DUPLICADO_DUPLICADO_DUPLICADO.pdf,CBM_IBERICA,,OK,C:\Users\marius.ion\Documents\pdf_classifier_app\data\output\Revision_Manual\arch1_DUPLICADO_DUPLICADO_DUPLICADO_DUPLICADO_207b.pdf
+2026-01-21 05:38:13,arch1.pdf,CBM_IBERICA,,OK,C:\Users\marius.ion\Documents\pdf_classifier_app\data\output\Revision_Manual\arch1.pdf

@@ -3,12 +3,11 @@ from tkinter import filedialog
 import os
 import threading
 
-# Importamos nuestro cerebro backend
 from app.core.pdf_processor import extraer_texto_pdf
 from app.core.parser import analizar_documento
 from app.core.file_manager import mover_y_renombrar
 from app.utils.logger import registrar_evento
-from app.config import DEFAULT_INPUT_DIR
+from app.config import DEFAULT_INPUT_DIR, DEFAULT_OUTPUT_DIR
 
 
 class PDFClassifierApp(ctk.CTk):
@@ -16,75 +15,104 @@ class PDFClassifierApp(ctk.CTk):
         super().__init__()
 
         # Configuración Ventana
-        self.title("Clasificador Inteligente de Albaranes")
-        self.geometry("800x600")
+        self.title("Clasificador Inteligente de Albaranes v0.3")
+        self.geometry("900x650")
         ctk.set_appearance_mode("Dark")
         ctk.set_default_color_theme("blue")
 
-        # Variables
+        # Variables de estado
         self.input_folder = ctk.StringVar(value=os.path.abspath(DEFAULT_INPUT_DIR))
+        self.output_folder = ctk.StringVar(value=os.path.abspath(DEFAULT_OUTPUT_DIR))
+        self.is_running = False
 
-        # --- LAYOUT (DISEÑO) ---
+        # --- LAYOUT PRINCIPAL ---
         self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(2, weight=1)  # El log se expande
+        self.grid_rowconfigure(2, weight=1)
 
-        # 1. Sección Header
-        self.lbl_title = ctk.CTkLabel(self, text="Panel de Control DAM", font=("Roboto", 24))
-        self.lbl_title.grid(row=0, column=0, pady=20, sticky="ew")
+        # 1. Header
+        self.lbl_title = ctk.CTkLabel(self, text="⚙️ Panel de Control DAM", font=("Roboto Medium", 24))
+        self.lbl_title.grid(row=0, column=0, pady=(20, 10), sticky="ew")
 
-        # 2. Sección Selección Carpeta
-        self.frame_top = ctk.CTkFrame(self)
-        self.frame_top.grid(row=1, column=0, padx=20, pady=10, sticky="ew")
+        # 2. Panel de Control
+        self.frame_controls = ctk.CTkFrame(self)
+        self.frame_controls.grid(row=1, column=0, padx=20, pady=10, sticky="ew")
+        self.frame_controls.grid_columnconfigure(1, weight=1)
 
-        self.btn_browse = ctk.CTkButton(self.frame_top, text="Seleccionar Carpeta Entrada",
-                                        command=self.seleccionar_carpeta)
-        self.btn_browse.grid(row=0, column=0, padx=10, pady=10)
+        # --- Fila 0: Entrada ---
+        lbl_in = ctk.CTkLabel(self.frame_controls, text="Carpeta Origen:", width=100, anchor="w")
+        lbl_in.grid(row=0, column=0, padx=15, pady=10)
 
-        self.lbl_folder = ctk.CTkLabel(self.frame_top, textvariable=self.input_folder, text_color="gray")
-        self.lbl_folder.grid(row=0, column=1, padx=10, sticky="w")
+        entry_in = ctk.CTkEntry(self.frame_controls, textvariable=self.input_folder, state="readonly")
+        entry_in.grid(row=0, column=1, padx=5, pady=10, sticky="ew")
 
-        self.btn_run = ctk.CTkButton(self.frame_top, text="▶ INICIAR CLASIFICACIÓN", fg_color="green",
-                                     hover_color="darkgreen", command=self.start_processing_thread)
-        self.btn_run.grid(row=0, column=2, padx=10, pady=10)
+        btn_in = ctk.CTkButton(self.frame_controls, text="📂 Buscar", width=80, command=self.select_input)
+        btn_in.grid(row=0, column=2, padx=15, pady=10)
 
-        # 3. Sección Log (Consola visual)
-        self.textbox_log = ctk.CTkTextbox(self, width=760)
-        self.textbox_log.grid(row=2, column=0, padx=20, pady=20, sticky="nsew")
-        self.log_message("Sistema listo. Esperando órdenes...")
+        # --- Fila 1: Salida ---
+        lbl_out = ctk.CTkLabel(self.frame_controls, text="Carpeta Destino:", width=100, anchor="w")
+        lbl_out.grid(row=1, column=0, padx=15, pady=10)
 
-        # 4. Barra de estado
-        self.lbl_status = ctk.CTkLabel(self, text="Estado: En espera", anchor="w")
-        self.lbl_status.grid(row=3, column=0, padx=20, pady=5, sticky="ew")
+        entry_out = ctk.CTkEntry(self.frame_controls, textvariable=self.output_folder, state="readonly")
+        entry_out.grid(row=1, column=1, padx=5, pady=10, sticky="ew")
 
+        btn_out = ctk.CTkButton(self.frame_controls, text="📂 Buscar", width=80, command=self.select_output)
+        btn_out.grid(row=1, column=2, padx=15, pady=10)
+
+        # --- Fila 2: Botón de Acción ---
+        self.btn_run = ctk.CTkButton(
+            self.frame_controls,
+            text="▶ INICIAR PROCESAMIENTO",
+            font=("Roboto", 16, "bold"),
+            fg_color="#2CC985",
+            hover_color="#229A65",
+            height=50,
+            command=self.start_processing_thread
+        )
+        self.btn_run.grid(row=2, column=0, columnspan=3, padx=20, pady=(10, 20), sticky="ew")
+
+        # 3. Log
+        self.textbox_log = ctk.CTkTextbox(self, font=("Consolas", 12))
+        self.textbox_log.grid(row=2, column=0, padx=20, pady=10, sticky="nsew")
+        self.log_message("Sistema listo. Configure las rutas y pulse Iniciar.")
+
+        # 4. Status Bar
+        self.lbl_status = ctk.CTkLabel(self, text="Estado: En espera", anchor="w", text_color="gray")
+        self.lbl_status.grid(row=3, column=0, padx=25, pady=(0, 10), sticky="ew")
+
+    # --- FUNCIONES AUXILIARES ---
     def log_message(self, message):
-        """Escribe en la cajita de texto"""
         self.textbox_log.insert("end", f">> {message}\n")
-        self.textbox_log.see("end")  # Auto-scroll al final
+        self.textbox_log.see("end")
 
-    def seleccionar_carpeta(self):
+    def select_input(self):
         folder = filedialog.askdirectory()
-        if folder:
-            self.input_folder.set(folder)
+        if folder: self.input_folder.set(folder)
 
+    def select_output(self):
+        folder = filedialog.askdirectory()
+        if folder: self.output_folder.set(folder)
+
+    # --- LÓGICA DE EJECUCIÓN ---
     def start_processing_thread(self):
-        """Lanza el proceso en segundo plano para no congelar la ventana"""
-        self.btn_run.configure(state="disabled")  # Evitar doble click
-        thread = threading.Thread(target=self.run_processing)
-        thread.start()
+        if self.is_running: return
+        self.is_running = True
+        self.btn_run.configure(state="disabled", text="⏳ PROCESANDO...")
+        threading.Thread(target=self.run_processing).start()
 
     def run_processing(self):
+        # 1. Obtenemos las rutas de la interfaz
         input_dir = self.input_folder.get()
+        base_output_dir = self.output_folder.get()  # <--- IMPORTANTE: Leemos la ruta de salida
+
         if not os.path.exists(input_dir):
-            self.log_message(f"❌ Error: La carpeta {input_dir} no existe.")
-            self.btn_run.configure(state="normal")
+            self.log_message(f"❌ Error: Ruta de entrada no existe.")
+            self.reset_ui()
             return
 
         archivos = [f for f in os.listdir(input_dir) if f.lower().endswith(".pdf")]
         total = len(archivos)
 
-        self.log_message(f"📂 Iniciando escaneo en: {input_dir}")
-        self.log_message(f"📄 Archivos PDF encontrados: {total}")
-
+        self.log_message(f"📂 Iniciando lote de {total} archivos...")
         procesados = 0
         errores = 0
 
@@ -92,31 +120,32 @@ class PDFClassifierApp(ctk.CTk):
             ruta_completa = os.path.join(input_dir, archivo)
             self.lbl_status.configure(text=f"Procesando: {archivo}...")
 
-            # --- FASE 1: LECTURA ---
-            texto, error_lectura = extraer_texto_pdf(ruta_completa)
-
-            if error_lectura:
-                self.log_message(f"⚠️ Error leyendo {archivo}: {error_lectura}")
+            # FASE 1: Leer
+            texto, error = extraer_texto_pdf(ruta_completa)
+            if error:
+                self.log_message(f"⚠️ Fallo lectura {archivo}: {error}")
                 errores += 1
                 registrar_evento(ruta_completa, {}, "Error Lectura", False)
                 continue
 
-            # --- FASE 2: ANÁLISIS ---
+            # FASE 2: Analizar
             datos = analizar_documento(texto)
-
             if datos["proveedor_detectado"]:
-                self.log_message(f"✅ {archivo} -> {datos['proveedor_detectado']} (Pedido: {datos['numero_pedido']})")
+                self.log_message(f"✅ {datos['proveedor_detectado']} -> Doc: {datos['numero_pedido']}")
             else:
-                self.log_message(f"❓ {archivo} -> No se identificó proveedor. A revisión manual.")
+                self.log_message(f"❓ {archivo} -> Proveedor desconocido (Revisión Manual)")
 
-            # --- FASE 3: ACCIÓN (MOVER) ---
-            exito, info_ruta = mover_y_renombrar(ruta_completa, datos)
+            # FASE 3: Mover (CORREGIDO: Pasamos base_output_dir)
+            exito, ruta_final = mover_y_renombrar(ruta_completa, datos, base_output_dir)
 
-            # --- FASE 4: LOGGING CSV ---
-            registrar_evento(ruta_completa, datos, info_ruta, exito)
-
+            # FASE 4: Log
+            registrar_evento(ruta_completa, datos, ruta_final, exito)
             procesados += 1
 
-        self.log_message(f"🏁 FIN DEL PROCESO. Procesados: {procesados} | Errores lectura: {errores}")
+        self.log_message(f"🏁 FIN. Procesados: {procesados} | Errores lectura: {errores}")
+        self.reset_ui()
+
+    def reset_ui(self):
+        self.is_running = False
+        self.btn_run.configure(state="normal", text="▶ INICIAR PROCESAMIENTO")
         self.lbl_status.configure(text="Estado: Finalizado")
-        self.btn_run.configure(state="normal")
