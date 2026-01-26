@@ -19,7 +19,7 @@ class PDFClassifierApp(ctk.CTk):
         super().__init__()
 
         # Configuración Ventana
-        self.title("Clasificador Inteligente - v2.1 (Splitter)")
+        self.title("Clasificador Albaranes - v2.1 (Splitter)")
         self.geometry("950x700")
         ctk.set_appearance_mode("system")
         ctk.set_default_color_theme("blue")
@@ -37,10 +37,10 @@ class PDFClassifierApp(ctk.CTk):
         self.frame_header = ctk.CTkFrame(self, fg_color="transparent")
         self.frame_header.grid(row=0, column=0, padx=20, pady=(20, 10), sticky="ew")
 
-        self.lbl_title = ctk.CTkLabel(self.frame_header, text="⚙️ Panel de Control DAM", font=("Roboto Medium", 24))
+        self.lbl_title = ctk.CTkLabel(self.frame_header, text="⚙️ Clasificador Albaranes", font=("Roboto Medium", 24))
         self.lbl_title.pack(side="left")
 
-        self.lbl_version = ctk.CTkLabel(self.frame_header, text="v2.0 Stable", text_color="gray")
+        self.lbl_version = ctk.CTkLabel(self.frame_header, text="v2.1 Splitter", text_color="gray")
         self.lbl_version.pack(side="right", anchor="s")
 
         # 2. Panel de Control
@@ -83,7 +83,7 @@ class PDFClassifierApp(ctk.CTk):
         # 3. Log
         self.textbox_log = ctk.CTkTextbox(self, font=("Consolas", 12))
         self.textbox_log.grid(row=2, column=0, padx=20, pady=10, sticky="nsew")
-        self.log_message("Sistema listo v2.0. Esperando archivos...")
+        self.log_message("Sistema listo v2.1. Esperando archivos...")
 
         # 4. Footer (Status + Botón Salir)
         self.frame_footer = ctk.CTkFrame(self, height=40)

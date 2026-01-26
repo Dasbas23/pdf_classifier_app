@@ -4,7 +4,7 @@ from app.core.splitter import dividir_pdf_por_proveedor
 
 # --- CONFIGURACIÓN ---
 # Ruta a tu PDF Frankenstein
-PDF_MASIVO = "lote_masivo_test.pdf"
+PDF_MASIVO = r"C:\Users\Marius\Downloads\SVIMPRESION19_ZARAGOZA_OFICINA TECNICA_1395_001.pdf"
 CARPETA_TEMP = "data/temp_split"
 
 # Limpieza previa (opcional)
@@ -14,7 +14,7 @@ if os.path.exists(CARPETA_TEMP):
 print("🧪 --- INICIANDO TEST DE SPLITTER (V2.1) ---")
 
 if not os.path.exists(PDF_MASIVO):
-    print(f"❌ No encuentro el archivo {PDF_MASIVO}. Ponlo en la raíz del proyecto.")
+    print(f"❌ No se encuentra el archivo {PDF_MASIVO}. Comprueba la ruta del archivo PDF_MASIVO")
     exit()
 
 # 1. EJECUTAR EL CORTE
