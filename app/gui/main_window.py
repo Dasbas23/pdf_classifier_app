@@ -2,12 +2,14 @@ import customtkinter as ctk
 from tkinter import filedialog
 import os
 import threading
-import sys  # Necesario para cerrar la app limpiamente
+import sys
+import shutil # Necesario para cerrar la app limpiamente
 
 # Importaciones del Core
 from app.core.pdf_processor import extraer_texto_pdf
 from app.core.parser import analizar_documento
 from app.core.file_manager import mover_y_renombrar
+from app.core.splitter import dividir_pdf_por_proveedor
 from app.utils.logger import registrar_evento
 from app.config import DEFAULT_INPUT_DIR, DEFAULT_OUTPUT_DIR
 
@@ -17,7 +19,7 @@ class PDFClassifierApp(ctk.CTk):
         super().__init__()
 
         # Configuración Ventana
-        self.title("Clasificador Inteligente - v2.0")
+        self.title("Clasificador Inteligente - v2.1 (Splitter)")
         self.geometry("950x700")
         ctk.set_appearance_mode("system")
         ctk.set_default_color_theme("blue")
@@ -131,48 +133,72 @@ class PDFClassifierApp(ctk.CTk):
     def run_processing(self):
         input_dir = self.input_folder.get()
         base_output_dir = self.output_folder.get()
+        # Carpeta temporal para los trozos cortados
+        temp_split_dir = os.path.join(base_output_dir, "_TEMP_SPLIT")
 
         if not os.path.exists(input_dir):
             self.log_message(f"❌ Error: Ruta de entrada no existe.")
             self.reset_ui()
             return
 
-        archivos = [f for f in os.listdir(input_dir) if f.lower().endswith(".pdf")]
-        total = len(archivos)
+        archivos_origen = [f for f in os.listdir(input_dir) if f.lower().endswith(".pdf")]
+        total_origen = len(archivos_origen)
 
-        self.log_message(f"📂 Iniciando lote de {total} archivos...")
-        procesados = 0
+        self.log_message(f"📂 Detectados {total_origen} archivos de entrada.")
+        self.log_message(f"🔪 Modo Splitter Activo: Analizando multipágina...")
+
+        procesados_finales = 0
         errores = 0
 
-        for archivo in archivos:
-            ruta_completa = os.path.join(input_dir, archivo)
-            self.lbl_status.configure(text=f"Procesando: {archivo}...")
+        for archivo in archivos_origen:
+            ruta_completa_origen = os.path.join(input_dir, archivo)
+            self.lbl_status.configure(text=f"Analizando lote: {archivo}...")
 
-            # FASE 1: Leer
-            texto, error = extraer_texto_pdf(ruta_completa)
-            if error:
-                self.log_message(f"⚠️ Fallo lectura {archivo}: {error}")
+            # 1. DIVIDIR (SPLITTER)
+            # Pasamos el archivo por la guillotina. Si es de 1 página, devuelve 1 trozo.
+            try:
+                sub_archivos = dividir_pdf_por_proveedor(ruta_completa_origen, temp_split_dir)
+            except Exception as e:
+                self.log_message(f"💥 Error crítico dividiendo {archivo}: {e}")
                 errores += 1
-                registrar_evento(ruta_completa, {}, "Error Lectura", False)
                 continue
 
-            # FASE 2: Analizar
-            datos = analizar_documento(texto)
+            # 2. PROCESAR CADA TROZO (CLASIFICADOR)
+            for sub_ruta in sub_archivos:
+                nombre_sub = os.path.basename(sub_ruta)
 
-            if datos["proveedor_detectado"]:
-                msg = f"✅ {datos['proveedor_detectado']} | Doc: {datos['id_documento']} | Fecha: {datos['fecha_documento']}"
-                self.log_message(msg)
-            else:
-                self.log_message(f"❓ {archivo} -> Proveedor desconocido (Revisión Manual)")
+                # A) Leer
+                texto, error = extraer_texto_pdf(sub_ruta)
+                if error:
+                    self.log_message(f"⚠️ Error lectura sub-archivo {nombre_sub}: {error}")
+                    errores += 1
+                    continue
 
-            # FASE 3: Mover
-            exito, ruta_final = mover_y_renombrar(ruta_completa, datos, base_output_dir)
+                # B) Analizar
+                datos = analizar_documento(texto)
 
-            # FASE 4: Log
-            registrar_evento(ruta_completa, datos, ruta_final, exito)
-            procesados += 1
+                if datos["proveedor_detectado"]:
+                    msg = f"   ✅ {datos['proveedor_detectado']} | Doc: {datos['id_documento']}"
+                    self.log_message(msg)
+                else:
+                    self.log_message(f"   ❓ {nombre_sub} -> Proveedor desconocido")
 
-        self.log_message(f"🏁 FIN. Procesados: {procesados} | Errores lectura: {errores}")
+                # C) Mover a destino final
+                exito, ruta_final = mover_y_renombrar(sub_ruta, datos, base_output_dir)
+
+                # D) Log
+                # Usamos el nombre del archivo original padre para el log, + el trozo
+                registrar_evento(f"{archivo} -> {nombre_sub}", datos, ruta_final, exito)
+                procesados_finales += 1
+
+        # Limpieza: Borrar carpeta temporal de trozos
+        if os.path.exists(temp_split_dir):
+            try:
+                shutil.rmtree(temp_split_dir)
+            except:
+                pass
+
+        self.log_message(f"🏁 FIN. Documentos generados: {procesados_finales} | Errores: {errores}")
         self.reset_ui()
 
     def reset_ui(self):

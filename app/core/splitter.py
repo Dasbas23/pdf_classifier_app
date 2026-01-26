@@ -5,7 +5,7 @@ import os
 
 def dividir_pdf_por_proveedor(ruta_pdf_masivo, carpeta_temporal):
     """
-    Recorre un PDF multipágina.
+    Recorre un PDF multipágina (Lote).
     Estrategia de Guillotina: Si detecta un proveedor en una página,
     asume que es el inicio de un nuevo documento.
     Las páginas sin firma se añaden al documento anterior (continuación).
@@ -15,71 +15,80 @@ def dividir_pdf_por_proveedor(ruta_pdf_masivo, carpeta_temporal):
     if not os.path.exists(ruta_pdf_masivo):
         return []
 
-    reader = PdfReader(ruta_pdf_masivo)
+    try:
+        reader = PdfReader(ruta_pdf_masivo)
+    except Exception as e:
+        print(f"❌ Error abriendo lote PDF: {e}")
+        return []
+
     archivos_generados = []
 
     writer_actual = None
     proveedor_actual = "Desconocido"
     pagina_inicio_actual = 0
 
-    # Asegurar que existe la carpeta temporal (ej: data/tmp_split)
+    # Asegurar que existe la carpeta temporal
     os.makedirs(carpeta_temporal, exist_ok=True)
 
-    print(f"🔄 Analizando archivo masivo de {len(reader.pages)} páginas...")
+    print(f"🔄 Analizando lote masivo de {len(reader.pages)} páginas...")
 
     for i, page in enumerate(reader.pages):
-        # Extraer texto para ver si es una portada de proveedor
+        # 1. Extraer texto para ver si es una portada de proveedor
         try:
-            text = page.extract_text()
+            text = page.extract_text() or ""
         except:
             text = ""
 
-        # Usamos nuestro parser existente solo para identificar proveedor
+        # 2. Analizar: ¿Hay firma de algún proveedor conocido aquí?
         analisis = analizar_documento(text)
         nuevo_proveedor = analisis.get("proveedor_detectado")
 
-        # --- LÓGICA DE CORTE ---
-        # Si encontramos una firma de proveedor, asumimos que empieza un albarán nuevo.
+        # --- LÓGICA DE GUILLOTINA ---
         if nuevo_proveedor:
-            # 1. Si ya teníamos uno abierto, lo cerramos y guardamos
-            if writer_actual:
-                ruta_guardada = _guardar_fragmento(writer_actual, proveedor_actual, pagina_inicio_actual,
-                                                   carpeta_temporal)
-                archivos_generados.append(ruta_guardada)
-                print(f"   ✂️ Corte detectado en pág {i}. Guardado anterior ({proveedor_actual}).")
+            # ¡HAY FIRMA! -> Esto es una PORTADA (Página 1 de un doc)
 
-            # 2. Empezamos uno nuevo con esta página
+            # A) Si ya teníamos un documento abierto escribiéndose...
+            if writer_actual:
+                # ...lo cerramos y guardamos porque ha empezado uno nuevo.
+                print(f"   ✂️ Corte en pág {i}. Fin del doc anterior ({proveedor_actual}).")
+                ruta = _guardar_fragmento(writer_actual, proveedor_actual, pagina_inicio_actual, carpeta_temporal)
+                archivos_generados.append(ruta)
+
+            # B) Empezamos el NUEVO documento
             writer_actual = PdfWriter()
             writer_actual.add_page(page)
             proveedor_actual = nuevo_proveedor
             pagina_inicio_actual = i
 
         else:
-            # Si NO detectamos proveedor...
+            # NO HAY FIRMA -> Es una página de continuación (Pág 2, 3...)
+            # O es basura / proveedor desconocido.
+
             if writer_actual:
-                # ...asumimos que es página 2, 3, etc. del documento actual
+                # La añadimos al documento que ya estaba abierto
                 writer_actual.add_page(page)
+                # print(f"   ➕ Pág {i} añadida a {proveedor_actual} (Continuación)")
             else:
-                # Caso raro: Las primeras páginas del PDF no tienen firma conocida.
-                # Creamos un documento "Huérfano"
+                # Caso raro: El PDF empieza con páginas sin firma conocida.
+                # Creamos un documento "Huérfano" para no perderlas.
                 writer_actual = PdfWriter()
                 writer_actual.add_page(page)
                 proveedor_actual = "Desconocido"
                 pagina_inicio_actual = i
 
-    # IMPORTANTE: Guardar el último bloque que queda abierto al salir del bucle
+    # 3. Al terminar el bucle, guardar el último documento que quedó abierto
     if writer_actual:
-        ruta_guardada = _guardar_fragmento(writer_actual, proveedor_actual, pagina_inicio_actual, carpeta_temporal)
-        archivos_generados.append(ruta_guardada)
+        ruta = _guardar_fragmento(writer_actual, proveedor_actual, pagina_inicio_actual, carpeta_temporal)
+        archivos_generados.append(ruta)
         print(f"   🏁 Guardado bloque final ({proveedor_actual}).")
 
     return archivos_generados
 
 
 def _guardar_fragmento(writer, proveedor, indice_pag, carpeta):
-    """Función auxiliar para escribir el archivo en disco"""
-    # Nombre temporal: TEMP_Pagina0_CBM.pdf
-    nombre = f"TEMP_Pag{indice_pag}_{proveedor}.pdf"
+    """Escribe el PDF temporal en disco"""
+    # Nombre único: SPLIT_Pág0_CBM.pdf
+    nombre = f"SPLIT_Pag{indice_pag}_{proveedor}.pdf"
     ruta = os.path.join(carpeta, nombre)
 
     with open(ruta, "wb") as f:
