@@ -3,18 +3,24 @@ import os
 import sys
 from app.config import TESSERACT_CMD, POPPLER_PATH
 
-# Importación condicional de librerías pesadas
+# Importación condicional de librerías pesadas con DEBUG
 try:
     import pytesseract
     from pdf2image import convert_from_path
     from PIL import Image
 
     OCR_AVAILABLE = True
-except ImportError:
+except ImportError as e:
+    # [MEJORA] Imprimimos el error real para saber por qué falla
+    print(f"⚠️ AVISO DEBUG: Falló la importación de OCR. Causa: {e}")
+    OCR_AVAILABLE = False
+except Exception as e:
+    print(f"⚠️ AVISO DEBUG: Error inesperado importando OCR. Causa: {e}")
     OCR_AVAILABLE = False
 
 
 def extraer_texto_pdf(ruta_archivo, forzar_ocr=False):
+    # ... (El resto del archivo sigue IGUAL, no hace falta cambiarlo)
     """
     Extrae texto del PDF.
     - Modo Rápido (Default): Usa pypdf.
@@ -23,9 +29,8 @@ def extraer_texto_pdf(ruta_archivo, forzar_ocr=False):
     if not os.path.exists(ruta_archivo):
         return None, "Archivo no encontrado"
 
-    # ==========================================
+
     # MODO 1: OCR VISUAL (LENTO)
-    # ==========================================
     if forzar_ocr:
         if not OCR_AVAILABLE:
             return None, "Librerías OCR no instaladas (pip install pytesseract pdf2image)"
@@ -62,9 +67,7 @@ def extraer_texto_pdf(ruta_archivo, forzar_ocr=False):
         except Exception as e:
             return None, f"Fallo Crítico Motor OCR: {str(e)}"
 
-    # ==========================================
     # MODO 2: NATIVO (RÁPIDO)
-    # ==========================================
     try:
         reader = PdfReader(ruta_archivo)
         texto_completo = ""

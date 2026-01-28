@@ -247,7 +247,7 @@ class PDFClassifierApp(ctk.CTk):
 
         # Validaciones básicas
         if not os.path.exists(self.input_folder.get()):
-            self.log_message("❌ Error: La carpeta de origen no existe.")
+            self.log_message("❌ Error: Comprueba la carpeta de origen, no existe.")
             return
 
         self.is_running = True
@@ -303,7 +303,7 @@ class PDFClassifierApp(ctk.CTk):
                     try:
                         # Asumiendo que extraer_texto_pdf fue actualizado para aceptar el argumento
                         # Si tu función core no acepta argumentos, elimina 'forzar_ocr=usar_ocr_activo'
-                        texto, error = extraer_texto_pdf(sub_ruta, forzar_ocr=usar_ocr_activo)
+                        texto, error = extraer_texto_pdf(sub_ruta)
                     except TypeError:
                         # Si la función del core antigua no acepta el parametro OCR, lo llamamos normal
                         texto, error = extraer_texto_pdf(sub_ruta)
@@ -355,3 +355,6 @@ class PDFClassifierApp(ctk.CTk):
         self.log_message(msg_fin)
         self.log_message("━" * 40)
 
+if __name__ == "__main__":
+    app = PDFClassifierApp()
+    app.mainloop()

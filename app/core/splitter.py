@@ -25,7 +25,7 @@ def dividir_pdf_por_proveedor(ruta_pdf_masivo, carpeta_temporal):
     # Asegurar que existe la carpeta temporal (ej: data/tmp_split)
     os.makedirs(carpeta_temporal, exist_ok=True)
 
-    print(f"🔄 Analizando archivo masivo de {len(reader.pages)} páginas...")
+    print(f"🔄 Analizando archivo de {len(reader.pages)} páginas...")
 
     for i, page in enumerate(reader.pages):
         # Extraer texto para ver si es una portada de proveedor
