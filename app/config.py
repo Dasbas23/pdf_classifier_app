@@ -40,7 +40,7 @@ POPPLER_PATH = os.path.join(BIN_DIR, "poppler", "Library", "bin")
 LOG_DIR = os.path.join(BASE_DIR, "data", "logs")
 
 #Título APP
-TITULO_APP ="⚙️ ClassDoc Engine"
+TITULO_APP ="⚙️ Doc Engine"
 
 #Versión actual
-VERSION_ACTUAL = "v2.5 (OCR)"
+VERSION_ACTUAL = "v2.6 (OCR)"

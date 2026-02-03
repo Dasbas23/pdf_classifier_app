@@ -29,14 +29,14 @@ class PDFClassifierApp(ctk.CTk):
         # Configuración Ventana Principal
         self.title(f"{TITULO_APP} - {VERSION_ACTUAL}")
         self.geometry("1000x800")
-        ctk.set_appearance_mode("Dark")
+        ctk.set_appearance_mode("system")
         ctk.set_default_color_theme("blue")
 
         # Variables de estado
         self.input_folder = ctk.StringVar(value=os.path.abspath(DEFAULT_INPUT_DIR))
         self.output_folder = ctk.StringVar(value=os.path.abspath(DEFAULT_OUTPUT_DIR))
         self.is_running = False
-        self.usar_ocr = ctk.BooleanVar(value=True)
+        self.usar_ocr = ctk.BooleanVar(value=True) #Se deja True por defecto.
 
         # --- LAYOUT PRINCIPAL (GRID) ---
         self.grid_columnconfigure(0, weight=1)
@@ -150,7 +150,8 @@ class PDFClassifierApp(ctk.CTk):
         self.textbox_log = ctk.CTkTextbox(
             self.frame_log,
             font=("Consolas", 12),
-            activate_scrollbars=True
+            activate_scrollbars=True,
+            state="normal"
         )
         self.textbox_log.grid(row=1, column=0, sticky="nsew")
 
@@ -186,6 +187,9 @@ class PDFClassifierApp(ctk.CTk):
         )
         self.btn_exit.grid(row=0, column=1)
 
+        #--- ATAJOS DEL TECLADO ---
+        self.bind('<Return>', lambda e: self.start_processing_thread())
+        self.bind('<Escape>', lambda e: self.cerrar_app())
     # --- FUNCIONES DE LÓGICA UI ---
 
     def cambiar_tema(self):
