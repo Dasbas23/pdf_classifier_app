@@ -1,13 +1,15 @@
 from pypdf import PdfReader, PdfWriter
 from app.core.parser import analizar_documento
-from app.config import TESSERACT_CMD, POPPLER_PATH
+from app.config import  POPPLER_PATH
 import os
 
 # Importación condicional para OCR
 try:
-    import pytesseract
+    from paddleocr import PaddleOCR
+    import numpy as np
     from pdf2image import convert_from_path
 
+    ocr_engine = PaddleOCR(use_angle_cls=True, lang='es')
     OCR_AVAILABLE = True
 except ImportError:
     OCR_AVAILABLE = False
@@ -36,9 +38,7 @@ def dividir_pdf_por_proveedor(ruta_pdf_masivo, carpeta_temporal, usar_ocr=False)
     proveedor_actual = "Desconocido"
     pagina_inicio_actual = 0
 
-    # Configurar Tesseract si hace falta
-    if usar_ocr and OCR_AVAILABLE:
-        pytesseract.pytesseract.tesseract_cmd = TESSERACT_CMD
+
 
     os.makedirs(carpeta_temporal, exist_ok=True)
 
@@ -64,8 +64,12 @@ def dividir_pdf_por_proveedor(ruta_pdf_masivo, carpeta_temporal, usar_ocr=False)
                     poppler_path=POPPLER_PATH
                 )
                 for img in imagenes:
-                    # Usamos psm 6 como acordamos (bloque de texto)
-                    text += pytesseract.image_to_string(img, lang='spa', config='--psm 6')
+                    # Convertir a numpy e inferir con PaddleOCR
+                    img_array = np.array(img)
+                    resultados = ocr_engine.ocr(img_array) #salta problema en ocr_engie
+                    if resultados and resultados[0]:
+                        for linea in resultados[0]:
+                            text += linea[1][0] + "\n"
             except Exception as e:
                 print(f"   ⚠️ Fallo OCR en página {i + 1} del splitter: {e}")
 

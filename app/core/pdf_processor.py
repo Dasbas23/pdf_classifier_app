@@ -1,20 +1,20 @@
 from pypdf import PdfReader
 import os
 import sys
-from app.config import TESSERACT_CMD, POPPLER_PATH
+from app.config import POPPLER_PATH
+import numpy as np  # <--- NUEVO
 
-# Importación condicional
+# Importación condicional para PaddleOCR
 try:
-    import pytesseract
     from pdf2image import convert_from_path
-    from PIL import Image, ImageOps, ImageEnhance  # <--- NUEVO
+    from paddleocr import PaddleOCR  # <--- NUEVO
 
+    # INICIALIZACIÓN GLOBAL (Importante para que no cargue el modelo en cada archivo)
+    # use_angle_cls=True auto-rota el texto. show_log=False quita el spam de la consola.
+    ocr_engine = PaddleOCR(use_angle_cls=True, lang='es')
     OCR_AVAILABLE = True
 except ImportError as e:
     print(f"⚠️ AVISO DEBUG: Falló la importación de OCR. Causa: {e}")
-    OCR_AVAILABLE = False
-except Exception as e:
-    print(f"⚠️ AVISO DEBUG: Error inesperado importando OCR. Causa: {e}")
     OCR_AVAILABLE = False
 
 
@@ -28,37 +28,29 @@ def extraer_texto_pdf(ruta_archivo, forzar_ocr=False):
         return None, "Archivo no encontrado"
 
     # ==========================================
-    # MODO 1: OCR VISUAL (MEJORADO V2.6)
+    # MODO 1: OCR DEEP LEARNING (PADDLEOCR)
     # ==========================================
     if forzar_ocr:
         if not OCR_AVAILABLE:
             return None, "Librerías OCR no instaladas."
-
-        if not os.path.exists(TESSERACT_CMD): return None, f"❌ Falta Tesseract: {TESSERACT_CMD}"
         if not os.path.exists(POPPLER_PATH): return None, f"❌ Falta Poppler: {POPPLER_PATH}"
 
-        pytesseract.pytesseract.tesseract_cmd = TESSERACT_CMD
-
         try:
-            print(f"   👁️ Motor OCR arrancando... (Procesando imagen)")
+            print(f"   👁️ Motor Deep Learning arrancando... (Procesando imagen)")
             images = convert_from_path(ruta_archivo, poppler_path=POPPLER_PATH)
 
             texto_completo = ""
             for img in images:
-                # --- FASE DE MEJORA DE IMAGEN ---
-                # 1. Convertir a escala de grises
-                img = img.convert('L')
-                # 2. Aumentar contraste
-                enhancer = ImageEnhance.Contrast(img)
-                img = enhancer.enhance(2)
-                # 3. Binarizar (Blanco y negro puro) - Ayuda mucho a Tesseract
-                img = img.point(lambda x: 0 if x < 180 else 255, '1')
+                # 1. Convertir imagen PIL a Array de Numpy (Formato PaddleOCR)
+                img_array = np.array(img)
 
-                # --- LECTURA ---
-                # config='--psm 3' (Auto-detectar bloques, bueno para docs torcidos)
-                # lang='spa' es vital si tienes el paquete español instalado
-                texto_pagina = pytesseract.image_to_string(img, lang='spa', config='--psm 3')
-                texto_completo += texto_pagina + "\n"
+                # 2. Inferencia (Reconocimiento)
+                resultados = ocr_engine.ocr(img_array)
+
+                # 3. Extraer solo el texto (Paddle devuelve coordenadas y confianza)
+                if resultados and resultados[0]:
+                    for linea in resultados[0]:
+                        texto_completo += linea[1][0] + "\n"
 
             if not texto_completo.strip():
                 return None, "OCR: Imagen vacía o ilegible."
