@@ -43,7 +43,7 @@
     },
     "WURTH": {
         "firma": ["WURTH","938629500","A08472276"],
-        "patron_documento": "(?:lbar[aá]n)[\\s\\S]*?(\\d{10})",
+        "patron_documento": "(?:lbar[aá]n|[Pp][aá]gina)?[\\s\\S]*?(\\d{10})",
         "patron_fecha": "(\\d{2}[/.]\\s*\\d{2}[/.]\\s*\\d{4})",
         "formato_fecha_origen": "%d/%m/%Y" ,
         "carpeta_destino": "Wurth_Albaranes"

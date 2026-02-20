@@ -7,7 +7,7 @@ from app.core.parser import analizar_documento
 
 # --- CONFIGURACIÓN ---
 # Pon aquí la ruta de tu PDF real de prueba
-RUTA_PDF_PRUEBA = r"C:\Users\Marius\Downloads\pag1.pdf"
+RUTA_PDF_PRUEBA = r"C:\Users\marius.ion\Downloads\SVIMPRESION19_ZARAGOZA_OFICINA TECNICA_1450_001.pdf"
 
 
 # Colores para la consola (Opcional, pero mola)
