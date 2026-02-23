@@ -28,7 +28,7 @@ class PDFClassifierApp(ctk.CTk):
 
         # Configuración Ventana Principal
         self.title(f"{TITULO_APP} - {VERSION_ACTUAL}")
-        self.geometry("1000x800")
+        self.geometry("900x800")
         ctk.set_appearance_mode("system")
         ctk.set_default_color_theme("blue")
 
